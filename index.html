@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Task Board</h1>
+        <button id="theme-toggle" aria-label="Toggle dark mode">🌙</button>
+    </header>
+    <main>
+         <section id="todos">
+            <h2>Your Todos</h2>
+            <div id="todo-main">
+            </div>
+        </section>       
+        <section id="input-section">
+            <h2>Load markdown</h2>
+            <input type="file" id="file-input">
+            <textarea rows="10" id="text-input" placeholder="Paste markdown here..."></textarea>
+            <button id="load-btn">Load</button>
+        </section>
+    </main>
+    <script src="index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</body>
+</html>
