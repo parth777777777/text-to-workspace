@@ -1,3 +1,27 @@
+// local storage integration
+let currentGroups = null
+
+function saveGroups(){
+    if(currentGroups){
+        try {
+            localStorage.setItem('todoGroups', JSON.stringify(currentGroups))
+        } catch (e) {
+            console.warn('Failed to save todos to localStorage:', e)
+        }
+    }
+}
+
+function loadGroups(){
+    try {
+        const saved = localStorage.getItem('todoGroups')
+        return saved ? JSON.parse(saved) : null
+    } catch (e) {
+        console.warn('Failed to load todos from localStorage:', e)
+        return null
+    }
+}
+
+//load button 
 document.getElementById("load-btn").addEventListener("click",async () =>{
     const markdown = await getMarkdownText()
     
@@ -7,11 +31,14 @@ document.getElementById("load-btn").addEventListener("click",async () =>{
     }
 
     const data  = parseMarkdown(markdown);
+    currentGroups = data
     renderGroups(data)
+    saveGroups()
+    MathJax.typesetPromise()
 })
 
-
-
+// make it such that when a file input it given . text input window becomes empty string so that when loading ,
+//  file gets loaded instead of default text
 document.getElementById("file-input").addEventListener("change",()=>{
     document.getElementById("text-input").value = ""
 })
@@ -72,7 +99,11 @@ function parseMarkdown(text){
 
         //for items 
         if (line.startsWith("-")){
-            const todoText = line.replace(/^-+\s*/, "")
+            const todoText = line.replace(/^-+\s*/, "").trim()
+
+            if (todoText.length === 0) {
+                return; // Skip empty todos
+            }
 
             const todo = {
                 text: todoText,
@@ -92,7 +123,36 @@ function parseMarkdown(text){
         groups.unshift(defaultGroup)
     }
 
+    
     return groups
+}
+
+
+ProgressBarElement = document.getElementById("progress-bar-container")
+
+function ProgressBar(groups){
+    let totalCount = 0 ;
+    let completedCount = 0;
+    groups.forEach(group => {
+        group.todos.forEach(todo => {
+            totalCount++
+            if(todo.done) completedCount++;
+        });
+    });
+    if (totalCount === 0) {
+        return 0;
+    }
+    const progressPercentage = (completedCount/totalCount)*100;
+    return progressPercentage
+}
+
+function updateProgressBar(groups){
+    const progress = ProgressBar(groups)
+    ProgressBarElement.style.setProperty("--progress", `${progress}%`)
+        ProgressBarElement.setAttribute(
+        "data-label",
+        `Progress : ${Math.round(progress)}%`
+        )
 }
 
 function renderGroups(groups){
@@ -145,35 +205,42 @@ function renderGroups(groups){
             groupTodos.appendChild(todoEl)
         });
     });
-    MathJax.typesetPromise();
+    updateProgressBar(groups)
+    saveGroups()
 }
 
 const themeToggle = document.getElementById("theme-toggle");
 const body = document.body;
 
 // restore saved theme
-if (localStorage.getItem("theme") === "light") {
-  body.classList.add("light");
-  themeToggle.textContent = "🌙";
-} else {
-  themeToggle.textContent = "☀️";
+try {
+    if (localStorage.getItem("theme") === "light") {
+        body.classList.add("light");
+        themeToggle.textContent = "🌙";
+    } else {
+        themeToggle.textContent = "☀️";
+    }
+} catch (e) {
+    console.warn('Failed to load theme from localStorage:', e)
+    themeToggle.textContent = "☀️";
 }
 
 themeToggle.addEventListener("click", () => {
   body.classList.toggle("light");
   const isLight = body.classList.contains("light");
   themeToggle.textContent = isLight ? "🌙" : "☀️";
-  localStorage.setItem("theme", isLight ? "light" : "dark");
+  try {
+      localStorage.setItem("theme", isLight ? "light" : "dark");
+  } catch (e) {
+      console.warn('Failed to save theme to localStorage:', e)
+  }
 });
 
 
-function checkProgress(groups){
-    const todoCount = groups.length * groups.todo.length ;
-    let progressCount = 0
-    groups.todo.forEach(todoTask => {
-        done === true ? progressCount++ : null
-    });
-    return (progressCount/todoCount)*100
+// load saved data on page startup 
+const loadedGroups = loadGroups()
+if(loadedGroups) {
+    currentGroups = loadedGroups;
+    renderGroups(loadedGroups)
+    Mathjax.typesetPromise()
 }
-
-// create a function to render progress bar . make it such that everytime rendergroups renders , we also render the progress bar
