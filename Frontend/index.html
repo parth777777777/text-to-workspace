@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Board</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Task Board</h1>
+        <div id="progress-bar-container" data-label="Progress : 0%"></div>
+        <button id="theme-toggle" aria-label="Toggle dark mode">🌙</button>
+    </header>
+
+    <main>
+        <!--Canvas-->
+        <section id="canvas">
+            <!-- hidden for now 
+              <div id="canvas-empty" hidden>
+                <h2>No workspaces yet</h2>
+                <p>Load markdown or paste raw text to get started.</p>
+            </div>
+            -->
+            <!-- Workspace Dropdown -->
+            <div id="ws-dropdown">
+                <button id="ws-title"></button>
+                <div id="ws-dropdown-content" hidden></div>
+            </div>
+            <!-- TODOS -->
+            <section id="todos">
+                <div id="todo-main"></div>
+            </section>
+        </section>
+
+
+        <!-- INPUT -->
+        <section id="input-section">
+            <section class="input-section-container" id="input-raw-container">
+                <h2>Raw Text Input</h2>
+                <textarea rows = 8 id="raw-input" placeholder="Paste raw content here..."></textarea>
+                <button class="input-section-btn" id="load-raw-btn">Load Raw Text</button>
+            </section>
+            <section class="input-section-container" id="input-md">
+                <h2>Load Markdown</h2>
+                <input type="file" id="file-input">
+                <textarea rows="10" id="text-input" placeholder="Paste markdown here..."></textarea>
+                <button class="input-section-btn" id="load-btn">Load</button>
+                <button class="input-section-btn" id="archive-workspace">Archive current Workspace</button>
+                <button class="input-section-btn" id="reset-app">Reset Everything</button>
+            </section>
+        </section>
+
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="index.js"></script>
+</body>
+</html>
