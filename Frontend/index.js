@@ -488,6 +488,46 @@ themeToggle.addEventListener("click", () => {
 });
 /* ---------------------------------------------------------------------------- */
 
+// Gemini api availability management 
+
+let geminiState = "UNKNOWN"; // initial
+
+function setGeminiState(state) {
+  geminiState = state;
+
+  if (state === "AVAILABLE") {
+    enableAIInput();
+  } else {
+    disableAIInput();
+  }
+}
+
+function disableAIInput() {
+  const rawInput = document.getElementById("raw-input");
+  const rawBtn = document.getElementById("load-raw-btn");
+
+  rawInput.placeholder =
+    "AI workspace generation is temporarily unavailable.\nYou can still create workspaces using Markdown.";
+
+  rawInput.classList.add("ai-disabled");
+  rawBtn.disabled = true;
+}
+
+function enableAIInput() {
+  const rawInput = document.getElementById("raw-input");
+  const rawBtn = document.getElementById("load-raw-btn");
+
+  rawInput.placeholder =
+    "Paste notes, syllabus, or any raw text here…";
+
+  rawInput.classList.remove("ai-disabled");
+  rawBtn.disabled = false;
+}
+
+
+
+/* ---------------------------------------------------------------------------- */
+
 // App startup
 function initApp(){
     workspaces = loadWorkspaces();

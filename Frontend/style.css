@@ -151,7 +151,6 @@ main {
 
   text-align: center;
   color: var(--text-secondary);
-  pointer-events: none; 
 }
 
 #canvas-empty[hidden] {
