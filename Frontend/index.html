@@ -16,20 +16,21 @@
     <main>
         <!--Canvas-->
         <section id="canvas">
-            <!-- hidden for now 
               <div id="canvas-empty" hidden>
                 <h2>No workspaces yet</h2>
                 <p>Load markdown or paste raw text to get started.</p>
             </div>
-            -->
-            <!-- Workspace Dropdown -->
-            <div id="ws-dropdown">
-                <button id="ws-title"></button>
-                <div id="ws-dropdown-content" hidden></div>
-            </div>
-            <!-- TODOS -->
-            <section id="todos">
-                <div id="todo-main"></div>
+            <!-- Workspace view -->
+            <section id="ws-view">
+                <!-- Workspace Dropdown -->
+                <div id="ws-dropdown">
+                    <button id="ws-title"></button>
+                    <div id="ws-dropdown-content" hidden></div>
+                </div>
+                <!-- TODOS -->
+                <section id="todos">
+                    <div id="todo-main"></div>
+                </section>
             </section>
         </section>
 
@@ -38,15 +39,17 @@
         <section id="input-section">
             <section class="input-section-container" id="input-raw-container">
                 <h2>Raw Text Input</h2>
-                <textarea rows = 8 id="raw-input" placeholder="Paste raw content here..."></textarea>
-                <button class="input-section-btn" id="load-raw-btn">Load Raw Text</button>
+                <textarea rows = 8 id="raw-input" placeholder="Paste your ideas ,notes, syllabus, or any raw text here…"></textarea>
+                <button class="input-section-btn" id="load-raw-btn">Create Workspace</button>
             </section>
             <section class="input-section-container" id="input-md">
-                <h2>Load Markdown</h2>
+                <h2>Create from Markdown</h2>
                 <input type="file" id="file-input">
                 <textarea rows="10" id="text-input" placeholder="Paste markdown here..."></textarea>
-                <button class="input-section-btn" id="load-btn">Load</button>
+                <button class="input-section-btn" id="load-btn">Create Workspace</button>
+                <h2>Manage Workspace</h2>
                 <button class="input-section-btn" id="archive-workspace">Archive current Workspace</button>
+                <button class="input-section-btn" id="delete-btn">Delete Current Workspace</button>
                 <button class="input-section-btn" id="reset-app">Reset Everything</button>
             </section>
         </section>

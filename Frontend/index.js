@@ -1,7 +1,50 @@
 let workspaces = []
 let currentWorkspaceId = null
+/* ---------------------------------------------------------------------------- */
+
+//helpers
+
+function getCurrentWorkspace(){
+    return workspaces.find( w => w.id === currentWorkspaceId) || null
+}
+
+function setCurrentWorkspace(workspaceId){
+    currentWorkspaceId = workspaceId
+    renderApp()
+}
+
+function getWorkspaceCount(){
+    let count =[0,0]
+    workspaces.filter(w => !w.archived).forEach(w => {
+        count[0] += 1;
+    });
+    count[1] = workspaces.length - count[0]
+    return count;
+}
+
+function inferWorkspaceTitle(markdown) {
+    const firstLine = markdown.split("\n").find(l => l.trim())
+    if (!firstLine) return "Untitled Workspace"
+    return firstLine.replace(/^[-*\s]+|[-*\s]+$/g, "").slice(0,40)
+}
+
+function getTodoCount(workspace){
+    let count = 0
+    (workspace.groups || []).forEach(g => { count += (g.todos||[]).length })
+    return count
+}
+
+function clearWorkspaceView() {
+    document.getElementById("ws-title").textContent = ""
+    document.getElementById("todo-main").innerHTML = ""
+}
+
+
+/* ---------------------------------------------------------------------------- */
+
 
 // workspace storage 
+
 function saveWorkspaces(){
     localStorage.setItem("workspaces",JSON.stringify(workspaces))
 }
@@ -19,37 +62,64 @@ function loadWorkspaces(){
         return [];
     }
 }
-function getCurrentWorkspace(){
-    return workspaces.find( w => w.id === currentWorkspaceId) || null
+/* ---------------------------------------------------------------------------- */
+
+
+//  progress bar 
+const ProgressBarElement = document.getElementById("progress-bar-container")
+
+function progressPercentage(groups){
+    let totalCount = 0 ;
+    let completedCount = 0;
+    groups.forEach(group => {
+        group.todos.forEach(todo => {
+            totalCount++
+            if(todo.done) completedCount++;
+        });
+    });
+    if (totalCount === 0) {
+        return 0;
+    }
+    const progressPercentage = (completedCount/totalCount)*100;
+    return progressPercentage
 }
 
-function setCurrentWorkspace(workspaceId){
-    currentWorkspaceId = workspaceId
+function updateProgressBar(groups){
+    const progress = progressPercentage(groups)
+    ProgressBarElement.style.setProperty("--progress", `${progress}%`)
+        ProgressBarElement.setAttribute(
+        "data-label",
+        `Progress : ${Math.round(progress)}%`
+        )
+}
+/* ---------------------------------------------------------------------------- */
+// render app
+
+function renderApp(){
+    const hasActive = workspaces.some(w => !w.archived);
+
+    const empty = document.getElementById("canvas-empty");
+    const wsView = document.getElementById("ws-view");
+    
+    empty.hidden = hasActive
+    wsView.hidden = !hasActive
+
+    if(!hasActive) {
+        clearWorkspaceView()
+        return
+    }
+    updateProgressBar([])
+    renderWorkspaceList()
     renderCurrentWorkspace()
 }
+/* ---------------------------------------------------------------------------- */
 
-function getWorkspaceCount(){
-    let count =[0,0]
-    workspaces.filter(w => !w.archived).forEach(w => {
-        count[0] += 1;
-    });
-    count[1] = workspaces.length - count[0]
-    return count;
-}
-function renderCurrentWorkspace(){
-    if (getWorkspaceCount()[0]===0){
-        renderEmptyState()
-    }
-    else{
-    const workspace = getCurrentWorkspace()
-    if(!workspace) {
-        document.getElementById("ws-title").textContent = "No Workspace Selected"
-        document.getElementById("todo-main").innerHTML = ""
-    }
-    renderGroups(workspace.groups)
-    document.getElementById("ws-title").textContent = workspace.title
-    }
-}
+// Workspace handling
+
+const wsTitle = document.getElementById("ws-title");
+const wsDropdown = document.getElementById("ws-dropdown");
+const wsDropdownMenu = document.getElementById("ws-dropdown-content");
+
 
 function createWorkspaceFromMarkdown(markdown){
     const groups = parseMarkdown(markdown)
@@ -63,29 +133,27 @@ function createWorkspaceFromMarkdown(markdown){
     currentWorkspaceId = workspace.id
     
     saveWorkspaces()
-    renderCurrentWorkspace()
+    renderApp()
 }
 
-function inferWorkspaceTitle(markdown) {
-    const firstLine = markdown.split("\n").find(l => l.trim())
-    if (!firstLine) return "Untitled Workspace"
-    return firstLine.replace(/^#+\s*/, "").slice(0, 40)
+function renderCurrentWorkspace(){
+    const workspace = getCurrentWorkspace();
+    if (!workspace) {
+      wsTitle.textContent = "No Workspace Selected";
+      document.getElementById("todo-main").innerHTML = "";
+      return;
+    }
+
+    renderGroups(workspace.groups);
+    wsTitle.textContent = workspace.title;
 }
-console.log("getTodoCount =", getTodoCount, typeof getTodoCount);
-
-function getTodoCount(workspace){
-    let count = 0
-    (workspace.groups || []).forEach(g => { count += (g.todos||[]).length })
-    return count
-}
-
-
-const wsTitle = document.getElementById("ws-title");
-const wsDropdown = document.getElementById("ws-dropdown");
-const wsDropdownMenu = document.getElementById("ws-dropdown-content");
 
 function renderWorkspaceList(){
     wsDropdownMenu.innerHTML = "";
+    header = document.createElement("div");
+    header.className = "dropdown-label";
+    header.textContent = "Your Workspaces";
+    wsDropdownMenu.appendChild(header);
     workspaces
       .filter(w => !w.archived)
       .forEach(w => {
@@ -103,9 +171,9 @@ function renderWorkspaceList(){
       });
 
       wsDropdownMenu.appendChild(document.createElement("hr"))
-      const heading = document.createElement("p");
+      const heading = document.createElement("div");
       heading.textContent = "Archived";
-      heading.className = "workspace-item";
+      heading.className = "dropdown-label";
       wsDropdownMenu.appendChild(heading);
 
       workspaces.filter(w => w.archived).forEach(w => {
@@ -130,7 +198,6 @@ wsTitle.addEventListener("click", (e) => {
     const isOpening = wsDropdownMenu.hasAttribute("hidden");
 
     if (isOpening) {
-        renderWorkspaceList();
         wsDropdownMenu.removeAttribute("hidden");
         wsTitle.dataset.open = "true";
     } else {
@@ -143,153 +210,6 @@ document.addEventListener("click", () => {
     wsDropdownMenu.setAttribute("hidden", "");
     wsTitle.dataset.open = "false";
 });
-
-
-
-function archiveCurrentWorkspace(){
-    const workspace = getCurrentWorkspace()
-    if(workspace){
-        workspace.archived = true
-        currentWorkspaceId = null
-        saveWorkspaces()
-        document.getElementById("todo-main").innerHTML = ""
-        document.getElementById("ws-title").textContent = "No Workspace Selected"
-    }
-}
-
-document.getElementById('archive-workspace')?.addEventListener('click', () => {
-    archiveCurrentWorkspace()
-})
-
-//load button 
-document.getElementById("load-btn").addEventListener("click",async () =>{
-    const markdown = await getMarkdownText()
-    
-    if(!markdown){
-        console.warn("No markdown provided")
-        return
-    }
-    createWorkspaceFromMarkdown(markdown)
-    MathJax.typesetPromise()
-})
-
-// make it such that when a file input it given . text input window becomes empty string so that when loading ,
-//  file gets loaded instead of default text
-document.getElementById("file-input").addEventListener("change",()=>{
-    document.getElementById("text-input").value = ""
-})
-
-async function getMarkdownText() {
-    const textarea = document.getElementById("text-input")
-    const fileinput = document.getElementById("file-input")
-
-    const text = textarea.value.trim();
-    if (text.length>0){
-        return text
-    }
-
-    const file = fileinput.files[0]
-    if(file){
-        try{
-            return await file.text();
-        }
-        catch(err){
-            console.error("Failed to read file : ",err)
-            return ""
-        }
-    }
-    return ""
-}
-
-function parseMarkdown(text){
-    const lines = text.split("\n")
-
-    const groups = []
-    let currentGroup = null
-
-    const defaultGroup = {
-        title : "Ungrouped",
-        todos : [],
-        collapsed : false
-    }
-
-    lines.forEach(rawLine => {
-        const line = rawLine.trim()
-
-        if(line.length === 0 ){
-            return;
-        }
-
-        if (line.startsWith("#")){
-            const title = line.replace(/^#+\s*/, "")
-
-            currentGroup = {
-                title : title || "untitled",
-                todos : [] ,
-                collapsed : false
-            }
-
-            groups.push(currentGroup);
-            return
-        }
-
-        //for items 
-        if (line.startsWith("-")){
-            const todoText = line.replace(/^-+\s*/, "").trim()
-
-            if (todoText.length === 0) {
-                return; // Skip empty todos
-            }
-
-            const todo = {
-                text: todoText,
-                done: false
-            }
-
-            if(currentGroup){
-                currentGroup.todos.push(todo);
-            }
-            else{
-                defaultGroup.todos.push(todo)
-            }
-        }
-    });
-
-    if(defaultGroup.todos.length > 0 ){
-        groups.unshift(defaultGroup)
-    }
-
-    
-    return groups
-}
-
-
-const ProgressBarElement = document.getElementById("progress-bar-container")
-
-function ProgressBar(groups){
-    let totalCount = 0 ;
-    let completedCount = 0;
-    groups.forEach(group => {
-        group.todos.forEach(todo => {
-            totalCount++
-            if(todo.done) completedCount++;
-        });
-    });
-    if (totalCount === 0) {
-        return 0;
-    }
-    const progressPercentage = (completedCount/totalCount)*100;
-    return progressPercentage
-}
-
-function updateProgressBar(groups){
-    const progress = ProgressBar(groups)
-    ProgressBarElement.style.setProperty("--progress", `${progress}%`)
-        ProgressBarElement.setAttribute(
-        "data-label",
-        `Progress : ${Math.round(progress)}%`
-        )
-}
 
 function renderGroups(groups){
     const container = document.getElementById("todo-main")
@@ -335,6 +255,7 @@ function renderGroups(groups){
             todoEl.addEventListener("click",(e)=>{
                 e.stopPropagation()
                 todo.done = !todo.done
+                saveWorkspaces()
                 renderGroups(groups)
             })
 
@@ -342,53 +263,51 @@ function renderGroups(groups){
         });
     });
     updateProgressBar(groups)
-    saveWorkspaces()
 }
 
-const themeToggle = document.getElementById("theme-toggle");
-const body = document.body;
 
 
-function resetApp(){
-    const confirmReset = confirm("Are you sure you want to reset the app? This will clear all workspaces and todos.")
-    if (!confirmReset) {
+/* ---------------------------------------------------------------------------- */
+// ARCHIVE FUNCTIONALITY
+
+function archiveCurrentWorkspace(){
+    const workspace = getCurrentWorkspace()
+    if(workspace){
+        workspace.archived = true
+        currentWorkspaceId = null
+        saveWorkspaces()
+        document.getElementById("todo-main").innerHTML = ""
+        document.getElementById("ws-title").textContent = "No Workspace Selected"
+    }
+    renderApp()
+}
+
+document.getElementById('archive-workspace')?.addEventListener('click', () => {
+    archiveCurrentWorkspace()
+})
+
+
+/* ---------------------------------------------------------------------------- */
+// INPUT SECTION EVENT HANDLERS 
+
+// when file input is given , it overrides any pre existing text input 
+document.getElementById("file-input").addEventListener("change",()=>{
+    document.getElementById("text-input").value = ""
+})
+
+//load button 
+document.getElementById("load-btn").addEventListener("click",async () =>{
+    const markdown = await getMarkdownText()
+    
+    if(!markdown){
+        console.warn("No markdown provided")
         return
     }
+    createWorkspaceFromMarkdown(markdown)
+    MathJax.typesetPromise()
+})
 
-    workspaces = []
-    currentWorkspaceId = null
-
-    localStorage.removeItem("workspaces");
-
-    document.getElementById("todo-main").innerHTML = "";
-    document.getElementById("workspace-list").innerHTML = "";
-
-    //reset progress bar
-    const ProgressBar = document.getElementById("progress-bar-container")
-    ProgressBar.style.setProperty("--progress", "0%");
-    ProgressBar.setAttribute("data-label", "Progress : 0%")
-
-    alert("App has been reset.")
-}
-
-document.getElementById("reset-app")?.addEventListener("click", resetApp);
-
-// restore saved theme
-if (localStorage.getItem("theme") === "light") {
-  body.classList.add("light");
-  themeToggle.textContent = "🌙";
-} else {
-  themeToggle.textContent = "☀️";
-}
-
-themeToggle.addEventListener("click", () => {
-  body.classList.toggle("light");
-  const isLight = body.classList.contains("light");
-  themeToggle.textContent = isLight ? "🌙" : "☀️";
-  localStorage.setItem("theme", isLight ? "light" : "dark");
-});
-
-
+// Load raw file 
 document.getElementById("load-raw-btn").addEventListener("click", async () => {
     const rawInput = document.getElementById("raw-input").value;
     if (!rawInput.trim()) {
@@ -414,30 +333,171 @@ document.getElementById("load-raw-btn").addEventListener("click", async () => {
         alert("An error occurred while processing your request.");
     }
 });
+/* ---------------------------------------------------------------------------- */
 
-function renderEmptyState(){
-    const canvas= document.getElementById("canvas")
-    canvas.innerHTML=`
-        <div id="canvas-empty" hidden>
-            <h2>No workspaces yet</h2>
-            <p>Load markdown or paste raw text to get started.</p>
-            <p>Click on the header to check for any archived workspaces.</p>
-        </div>
-    `
+// MARKDOWN FETCHING AND PARSING 
+
+async function getMarkdownText() {
+    const textarea = document.getElementById("text-input")
+    const fileinput = document.getElementById("file-input")
+
+    const text = textarea.value.trim();
+    if (text.length>0){
+        return text
+    }
+
+    const file = fileinput.files[0]
+    if(file){
+        try{
+            return await file.text();
+        }
+        catch(err){
+            console.error("Failed to read file : ",err)
+            return ""
+        }
+    }
+    return ""
 }
 
-// load saved data on page startup 
-function initApp(){
-    workspaces = loadWorkspaces() 
+function parseMarkdown(text){
+    const lines = text.split("\n")
 
-    const firstActive = workspaces.length<0 ? null : workspaces.find(w => !w.archived)
-    if (firstActive) {
-        currentWorkspaceId = firstActive.id
-        renderCurrentWorkspace()
+    const groups = []
+    let currentGroup = null
+
+    const defaultGroup = {
+        title : "Ungrouped",
+        todos : [],
+        collapsed : false
     }
-    else{
-        renderEmptyState()
+    lines[0] = lines[0].replace(/^[-#*\s]+|[#-*\s]+$/g, "")
+    lines.forEach(rawLine => {
+        const line = rawLine.trim()
+
+        if(line.length === 0 ){
+            return;
+        }
+
+        if (line.startsWith("#")){
+            const title = line.replace(/^[-*+#]+\s*/, "")
+
+            currentGroup = {
+                title : title || "untitled",
+                todos : [] ,
+                collapsed : false
+            }
+
+            groups.push(currentGroup);
+            return
+        }
+
+        //for items 
+        const unorderedListMarkers = ["-", "*","+"];
+        const startsWithListMarker = unorderedListMarkers.some(marker => line.startsWith(marker));
+        if (startsWithListMarker){
+            const todoText = line.replace(/^[+*-]+\s*/, "").trim()
+
+            if (todoText.length === 0) {
+                return; // Skip empty todos
+            }
+
+            const todo = {
+                text: todoText,
+                done: false
+            }
+
+            if(currentGroup){
+                currentGroup.todos.push(todo);
+            }
+            else{
+                defaultGroup.todos.push(todo)
+            }
+        }
+    });
+
+    if(defaultGroup.todos.length > 0 ){
+        groups.unshift(defaultGroup)
     }
+
+    
+    return groups
+}
+
+/* ---------------------------------------------------------------------------- */
+
+
+// Delete and reset
+
+function deleteWs(){
+    if (currentWorkspaceId === null) {
+        alert("No workspace selected to delete.");
+        return;
+    }
+
+    const confirmDelete = confirm("Are you sure you want to delete this workspace? This will remove all todos in it.");
+    if (!confirmDelete) {
+        return;
+    }
+
+    workspaces = workspaces.filter(ws => ws.id !== currentWorkspaceId);
+    currentWorkspaceId = null;
+
+    localStorage.setItem("workspaces", JSON.stringify(workspaces));
+
+    renderApp();
+}
+
+document.getElementById("delete-btn").addEventListener("click", deleteWs);
+
+function resetApp(){
+    const confirmReset = confirm("Are you sure you want to reset the app? This will clear all workspaces and todos.")
+    if (!confirmReset) {
+        return
+    }
+
+    workspaces = []
+    currentWorkspaceId = null
+
+    localStorage.removeItem("workspaces");
+
+    renderApp()
+
+    alert("App has been reset.")
+}
+
+document.getElementById("reset-app")?.addEventListener("click", resetApp);
+/* ---------------------------------------------------------------------------- */
+
+// Theme handling
+
+const themeToggle = document.getElementById("theme-toggle");
+const body = document.body;
+// restore saved theme
+if (localStorage.getItem("theme") === "light") {
+  body.classList.add("light");
+  themeToggle.textContent = "🌙";
+} else {
+  themeToggle.textContent = "☀️";
+}
+
+themeToggle.addEventListener("click", () => {
+  body.classList.toggle("light");
+  const isLight = body.classList.contains("light");
+  themeToggle.textContent = isLight ? "🌙" : "☀️";
+  localStorage.setItem("theme", isLight ? "light" : "dark");
+});
+/* ---------------------------------------------------------------------------- */
+
+// App startup
+function initApp(){
+    workspaces = loadWorkspaces();
+
+    const firstActive = workspaces.find(w => !w.archived) || null;
+    currentWorkspaceId = firstActive?.id ?? null
+
+    renderApp()
 }
 
 initApp()
+
+/* ---------------------------------------------------------------------------- */
