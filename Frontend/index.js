@@ -41,6 +41,24 @@ function clearWorkspaceView() {
 
 
 /* ---------------------------------------------------------------------------- */
+function setRawLoading(isLoading) {
+  const btn = document.getElementById("load-raw-btn");
+  const textarea = document.getElementById("raw-input");
+
+  if (isLoading) {
+    rawRequestInFlight = true;
+    btn.disabled = true;
+    btn.textContent = "Generating…";
+    textarea.disabled = true;
+  } else {
+    rawRequestInFlight = false;
+    btn.disabled = !aiAvailable;
+    btn.textContent = "Create Workspace";
+    textarea.disabled = false;
+  }
+}
+
+/* ---------------------------------------------------------------------------- */
 
 
 // workspace storage 
@@ -309,30 +327,58 @@ document.getElementById("load-btn").addEventListener("click",async () =>{
 
 // Load raw file 
 document.getElementById("load-raw-btn").addEventListener("click", async () => {
-    const rawInput = document.getElementById("raw-input").value;
+    const btn = document.getElementById("load-raw-btn");
+    const textarea = document.getElementById("raw-input");
+
+    const rawInput = textarea.value;
     if (!rawInput.trim()) {
         alert("Please enter some text first.");
         return;
     }
 
+    btn.disabled = true;
+    btn.textContent = "Generating…";
+    textarea.disabled = true;
+
     try {
-        const response = await fetch("api/breakdown", {
+        const response = await fetch("/api/breakdown", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ task: rawInput })
         });
 
         const data = await response.json();
+
+        if (!response.ok) {
+            if (data.error === "AI_UNAVAILABLE") {
+                btn.textContent = "AI unavailable";
+                textarea.placeholder =
+                  "AI workspace generation is temporarily unavailable.\nUse Markdown instead.";
+                return;
+            }
+
+            throw new Error("Server error");
+        }
+
         if (data.text) {
             createWorkspaceFromMarkdown(data.text);
         } else {
             alert("Failed to break down the task.");
         }
+
     } catch (error) {
-        console.error("Error: The meow", error);
+        console.error("Error:", error);
         alert("An error occurred while processing your request.");
+    } finally {
+        // 🔓 UNFREEZE UI (only if AI still usable)
+        if (btn.textContent !== "AI unavailable") {
+            btn.disabled = false;
+            btn.textContent = "Create Workspace";
+            textarea.disabled = false;
+        }
     }
 });
+
 /* ---------------------------------------------------------------------------- */
 
 // MARKDOWN FETCHING AND PARSING 
@@ -525,6 +571,24 @@ function enableAIInput() {
 }
 
 
+async function initAIStatus() {
+  try {
+    const res = await fetch("/api/status");
+    const data = await res.json();
+
+    aiAvailable = data.ai_available;
+
+    if (!aiAvailable) {
+      disableAIInput();
+    }
+  } catch {
+    // Fail closed
+    disableAIInput();
+  }
+}
+
+
+
 
 /* ---------------------------------------------------------------------------- */
 
@@ -535,6 +599,8 @@ function initApp(){
     const firstActive = workspaces.find(w => !w.archived) || null;
     currentWorkspaceId = firstActive?.id ?? null
 
+
+    initAIStatus();
     renderApp()
 }
 
