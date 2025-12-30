@@ -132,7 +132,7 @@ main {
   display: flex;
   width: 100%;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
   padding-top: 32px;
   padding-bottom: 32px;
   padding-left: clamp(40px, 15vw, 80px);
@@ -454,6 +454,16 @@ main {
 .input-section-btn:active {
   transform: translateY(0);
 }
+
+.input-section-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#raw-input.ai-disabled {
+  opacity: 0.6;
+}
+
 
 #reset-app:hover {
   transform: translateY(-2px);
