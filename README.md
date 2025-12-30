@@ -1,4 +1,10 @@
+# Text-to-Workspace
 
+A lightweight app that converts unstructured text into structured, trackable workspaces.
+
+(README in progress)
+
+---
 
 ## Markdown Format Guide
 
