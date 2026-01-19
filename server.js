@@ -46,34 +46,33 @@ app.post("/api/breakdown", async (req, res) => {
   const { task } = req.body;
 
 const prompt = `
-    You are formatting a study plan.
+You must output a study plan in EXACTLY the following structure.
 
-    STRICT FORMAT RULES (NO EXCEPTIONS):
-    1. First line: ONLY the title of the entire study plan.
-    - No markdown symbols.
-    - No extra text.
+Output rules:
+- Output plain text only.
+- Do not include explanations or extra text.
+- Follow the structure exactly as shown in the example.
 
-    2. Use ONLY these markdown symbols:
-    - '#' for module headings
-    - '-' for subtasks
+STRUCTURE EXAMPLE (this is a valid output):
 
-    3. DO NOT use:
-    - '##', '###', or any other heading levels
-    - paragraphs
-    - explanations
-    - blank lines between subtasks
-    - any text outside the defined structure
+Study Plan Title
+# Module One
+- Subtask one
+- Subtask two
+# Module Two
+- Subtask one
+- Subtask two
 
-    4. Each module MUST be:
-    # Module Name
-    - Subtask
-    - Subtask
+STRUCTURE RULES:
+- First line: title only (no markdown, no symbols)
+- Each module starts with "# Module Name"
+- Each module contains only "-" subtasks
+- No blank lines inside a module
+- No other markdown symbols allowed
 
-    5. Subtopics MUST be converted into subtasks (NOT headings).
-
-    Task:
-    ${task}
-    `;
+Now generate a study plan for the following task:
+${task}
+`;
 
 
   try {
